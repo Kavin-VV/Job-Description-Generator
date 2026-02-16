@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Job Description Generator</title>
+    <!-- Fonts -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons" />
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Material UI -->
+    <script crossorigin src="https://unpkg.com/@mui/material@5.15.11/umd/material-ui.development.js"></script>
+    <script crossorigin src="https://unpkg.com/@emotion/react@11.11.3/umd/emotion-react.umd.min.js"></script>
+    <script crossorigin src="https://unpkg.com/@emotion/styled@11.11.0/umd/emotion-styled.umd.min.js"></script>
+    
+    <!-- Axios -->
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+
+    <style>
+        body { margin: 0; background-color: #f5f5f5; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { 
+            CssBaseline, 
+            ThemeProvider, 
+            createTheme, 
+            Container, 
+            Box, 
+            Typography, 
+            Paper, 
+            TextField, 
+            Button, 
+            Stack, 
+            Chip, 
+            CircularProgress, 
+            Card, 
+            CardContent, 
+            List, 
+            ListItem, 
+            ListItemText, 
+            Divider, 
+            Grid, 
+            Snackbar, 
+            Alert 
+        } = MaterialUI;
+
+        const theme = createTheme({
+            palette: {
+                mode: 'light',
+                primary: { main: '#1976d2' },
+                secondary: { main: '#dc004e' },
+            },
+        });
+
+        // JobForm Component
+        const JobForm = ({ onGenerate, loading }) => {
+            const [formData, setFormData] = React.useState({
+                designation: '',
+                yoe: '',
+                currentSkill: '',
+                skills: [],
+                extraInfo: ''
+            });
+
+            const handleChange = (e) => {
+                setFormData({ ...formData, [e.target.name]: e.target.value });
+            };
+
+            const handleAddSkill = (e) => {
+                if (e.key === 'Enter' && formData.currentSkill.trim()) {
+                    e.preventDefault();
+                    if (!formData.skills.includes(formData.currentSkill.trim())) {
+                        setFormData({
+                            ...formData,
+                            skills: [...formData.skills, formData.currentSkill.trim()],
+                            currentSkill: ''
+                        });
+                    }
+                }
+            };
+
+            const handleDeleteSkill = (skillToDelete) => {
+                setFormData({
+                    ...formData,
+                    skills: formData.skills.filter((skill) => skill !== skillToDelete)
+                });
+            };
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                onGenerate({
+                    designation: formData.designation,
+                    yoe: parseInt(formData.yoe),
+                    skills: formData.skills,
+                    extraInfo: formData.extraInfo
+                });
+            };
+
+            return (
+                <Paper elevation={3} sx={{ p: 4, maxWidth: 600, mx: 'auto', mt: 4 }}>
+                    <Typography variant="h5" component="h2" gutterBottom>
+                        Generate Job Description
+                    </Typography>
+                    <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
+                        <Stack spacing={3}>
+                            <TextField
+                                required
+                                label="Job Designation"
+                                name="designation"
+                                value={formData.designation}
+                                onChange={handleChange}
+                                fullWidth
+                            />
+                            <TextField
+                                required
+                                type="number"
+                                label="Years of Experience"
+                                name="yoe"
+                                value={formData.yoe}
+                                onChange={handleChange}
+                                fullWidth
+                                inputProps={{ min: 0, max: 50 }}
+                            />
+                            <Box>
+                                <TextField
+                                    label="Skills (Press Enter to add)"
+                                    name="currentSkill"
+                                    value={formData.currentSkill}
+                                    onChange={handleChange}
+                                    onKeyDown={handleAddSkill}
+                                    fullWidth
+                                    helperText="Type a skill and press Enter"
+                                />
+                                <Box sx={{ mt: 1, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                                    {formData.skills.map((skill, index) => (
+                                        <Chip
+                                            key={index}
+                                            label={skill}
+                                            onDelete={() => handleDeleteSkill(skill)}
+                                        />
+                                    ))}
+                                </Box>
+                            </Box>
+                            <TextField
+                                label="Additional Information"
+                                name="extraInfo"
+                                value={formData.extraInfo}
+                                onChange={handleChange}
+                                multiline
+                                rows={4}
+                                fullWidth
+                                placeholder="Any specific requirements, company culture, etc."
+                            />
+                            <Button 
+                                type="submit" 
+                                variant="contained" 
+                                size="large"
+                                disabled={loading}
+                                startIcon={loading && <CircularProgress size={20} color="inherit" />}
+                            >
+                                {loading ? 'Generating...' : 'Generate Description'}
+                            </Button>
+                        </Stack>
+                    </Box>
+                </Paper>
+            );
+        };
+
+        // JobDisplay Component
+        const JobDisplay = ({ descriptions }) => {
+            if (!descriptions || descriptions.length === 0) return null;
+
+            return (
+                <Box sx={{ mt: 4, maxWidth: 1200, mx: 'auto' }}>
+                    <Typography variant="h4" component="h2" gutterBottom align="center">
+                        Generated Descriptions
+                    </Typography>
+                    <Grid container spacing={3}>
+                        {descriptions.map((job, index) => (
+                            <Grid item xs={12} md={4} key={index}>
+                                <Card elevation={3} sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                                    <CardContent>
+                                        <Typography variant="h6" component="div" gutterBottom>
+                                            Option {index + 1}: {job.designation}
+                                        </Typography>
+                                        
+                                        <Box sx={{ mb: 2 }}>
+                                            <Typography variant="subtitle2" color="text.secondary">
+                                                Experience: {job.experience} Years
+                                            </Typography>
+                                            <Box sx={{ mt: 1, display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                                                {job.skills.map((skill, i) => (
+                                                    <Chip key={i} label={skill} size="small" variant="outlined" />
+                                                ))}
+                                            </Box>
+                                        </Box>
+
+                                        <Typography variant="body2" paragraph sx={{ mb: 2, fontStyle: 'italic' }}>
+                                            {job.description}
+                                        </Typography>
+
+                                        <Divider sx={{ my: 1 }} />
+                                        
+                                        <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 'bold' }}>
+                                            Key Responsibilities
+                                        </Typography>
+                                        <List dense>
+                                            {job.responsibilities.map((resp, i) => (
+                                                <ListItem key={i} disablePadding>
+                                                    <ListItemText 
+                                                        primary={resp} 
+                                                        primaryTypographyProps={{ variant: 'body2' }}
+                                                    />
+                                                </ListItem>
+                                            ))}
+                                        </List>
+
+                                        <Divider sx={{ my: 1 }} />
+
+                                        <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 'bold' }}>
+                                            Requirements
+                                        </Typography>
+                                        <List dense>
+                                            {job.requirements.map((req, i) => (
+                                                <ListItem key={i} disablePadding>
+                                                    <ListItemText 
+                                                        primary={req}
+                                                        primaryTypographyProps={{ variant: 'body2' }}
+                                                    />
+                                                </ListItem>
+                                            ))}
+                                        </List>
+                                    </CardContent>
+                                </Card>
+                            </Grid>
+                        ))}
+                    </Grid>
+                </Box>
+            );
+        };
+
+        // Main App Component
+        function App() {
+            const [descriptions, setDescriptions] = React.useState([]);
+            const [loading, setLoading] = React.useState(false);
+            const [error, setError] = React.useState(null);
+
+            const handleGenerate = async (formData) => {
+                setLoading(true);
+                setError(null);
+                setDescriptions([]);
+
+                try {
+                    const response = await axios.post('http://127.0.0.1:8000/api/generate-job-description/', formData);
+                    if (response.data.success) {
+                        setDescriptions(response.data.data);
+                    } else {
+                        setError('Failed to generate description');
+                    }
+                } catch (err) {
+                    console.error(err);
+                    setError(err.response?.data?.message || 'An error occurred while communicating with the server. Ensure Backend is running.');
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const handleCloseError = () => {
+                setError(null);
+            };
+
+            return (
+                <ThemeProvider theme={theme}>
+                    <CssBaseline />
+                    <Container maxWidth="lg">
+                        <Box sx={{ my: 4 }}>
+                            <Typography variant="h3" component="h1" gutterBottom align="center" color="primary">
+                                Job Description Generator
+                            </Typography>
+                            <Typography variant="subtitle1" gutterBottom align="center" color="text.secondary">
+                                 AI-Powered Job Descriptions (No-Build Version)
+                            </Typography>
+                            
+                            <JobForm onGenerate={handleGenerate} loading={loading} />
+                            
+                            {descriptions.length > 0 && (
+                                <JobDisplay descriptions={descriptions} />
+                            )}
+                        </Box>
+                        
+                        <Snackbar open={!!error} autoHideDuration={6000} onClose={handleCloseError}>
+                            <Alert onClose={handleCloseError} severity="error" sx={{ width: '100%' }}>
+                                {error}
+                            </Alert>
+                        </Snackbar>
+                    </Container>
+                </ThemeProvider>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
